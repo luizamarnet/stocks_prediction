@@ -1,0 +1,37 @@
+# Security: NEVER commit API keys or environment secrets
+.env
+.env.*
+*.pem
+*.key
+
+# Temporary files created by our refactoring script/Aider
+temp_prompt.md
+.aider*
+
+# Python & Environment artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+*.pyc
+
+# Data & OS specific files
+data/raw_data/
+data/processed_data/
+.DS_Store
+Thumbs.db
+*.csv
+
+# IDE & Editor settings
+.vscode/
+.idea/
+
+# Folders and files
+results*/
+helper*
+select_features.py
+src/stocks_prediction/diagnostics.py
+src/stocks_prediction/feature_importance.py
+src/stocks_prediction/teste.py
