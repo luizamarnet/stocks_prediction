@@ -23,6 +23,12 @@ def compute_net_return_series(
     Returns:
         Table of returns with the same shape as ``prices``.
     """
+    if label_type not in ("profit", "percentage"):
+        raise ValueError(
+            f"Invalid label_type: {label_type!r}. "
+            "Please, label_type must be either 'profit' or 'percentage'."
+        )
+    
     if (label_type != "percentage"):
         n_stocks = budget // prices.shift(1)
         entry_fee = buy_sell_fee + (commission_bps / 10000.0) * (n_stocks * prices.shift(1))

@@ -25,6 +25,11 @@ def prepare_pca_data_train(
     Returns:
         Tuple of (PCA scores as a DataFrame with columns PC1..PCn, fitted PCA object).
     """
+    if label_type not in ("profit", "percentage"):
+        raise ValueError(
+            f"Invalid label_type: {label_type!r}. "
+            "Please, label_type must be either 'profit' or 'percentage'."
+        )
     df = df.sort_index()
 
     df_return = compute_net_return_series(df, budget, buy_sell_fee, commission_bps, label_type)
@@ -62,6 +67,12 @@ def prepare_pca_data_test(
     Returns:
         PCA scores as a DataFrame with columns PC1..PCn.
     """
+    if label_type not in ("profit", "percentage"):
+        raise ValueError(
+            f"Invalid label_type: {label_type!r}. "
+            "Please, label_type must be either 'profit' or 'percentage'."
+        )
+    
     df = df.sort_index()
 
     df_return = compute_net_return_series(df, budget, buy_sell_fee, commission_bps, label_type)

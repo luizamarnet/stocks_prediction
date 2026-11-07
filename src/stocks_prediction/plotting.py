@@ -26,11 +26,15 @@ def plot_graphs(
         save_path: Directory where the PNG files are saved. If None, nothing is saved.
         dates: Dates for the x-axis of the PnL curve. If None, the sample index is used.
     """
+    
     # Convert the sequences to NumPy arrays for element-wise operations
     pnl_code_arr = np.array(pnl_code)
     pnl_no_code_arr = np.array(pnl_test_no_code)
     x_values = dates if dates is not None else np.arange(len(pnl_code_arr))
 
+    if percent:
+        pnl_code_arr*=100
+        pnl_no_code_arr*=100
     # 1. Box plot of the difference between strategy and benchmark
     plt.figure(figsize=(8, 6))
     plt.boxplot(

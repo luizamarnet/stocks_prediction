@@ -17,6 +17,18 @@ resolution-markers = [
 ]
 
 [[package]]
+name = "aider"
+version = "0.2.6"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "configparser" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/eb/db/e0e79a60749ecb052f10d1ea115d96f09d91d4ee8ae836ed0330a31eaedf/aider-0.2.6.tar.gz", hash = "sha256:770ecdf888e15215ae4b10cde22b6961ba67b0bd7737b2260c6efd0ef76b969d", size = 3052, upload-time = "2024-08-09T20:37:17.148Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/5f/d9/77420d87bce381b8d70396bafab90924e1d7c89fddebf62c3ac1d86cf2c7/aider-0.2.6-py3-none-any.whl", hash = "sha256:4e3e5c0f6cde7ca1c3291e022ab08618ddebddaa5836d5b0b6d3100c86c5d652", size = 3091, upload-time = "2024-08-09T20:37:14.349Z" },
+]
+
+[[package]]
 name = "beautifulsoup4"
 version = "4.15.0"
 source = { registry = "https://pypi.org/simple" }
@@ -291,6 +303,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/27/fb/576f067976d320f5f0114a8d9fa1215425441bb35627b1993e5afd8111e5/cloudpickle-3.1.2.tar.gz", hash = "sha256:7fda9eb655c9c230dab534f1983763de5835249750e85fbcef43aaa30a9a2414", size = 22330, upload-time = "2025-11-03T09:25:26.604Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/88/39/799be3f2f0f38cc727ee3b4f1445fe6d5e4133064ec2e4115069418a5bb6/cloudpickle-3.1.2-py3-none-any.whl", hash = "sha256:9acb47f6afd73f60dc1df93bb801b472f05ff42fa6c84167d25cb206be1fbf4a", size = 22228, upload-time = "2025-11-03T09:25:25.534Z" },
+]
+
+[[package]]
+name = "configparser"
+version = "7.3.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/05/b6/0740835503f8d6201154a6eb9fba37e1462fa9c21f363c28bbb972daaa3a/configparser-7.3.0.tar.gz", hash = "sha256:2e148379c75806e4ab879bea6245774c65b6206236f4b3d74d8231cb1c46c741", size = 55161, upload-time = "2026-10-22T16:24:31.432Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/48/07/6e0660b7d5012a4ad4459da74135f6487d51de5c8e43a80a5bc603f195b2/configparser-7.3.0-py3-none-any.whl", hash = "sha256:301444a02c87d115db7fb76eb8900cb5f79e1cb667c7e86537308dd822584a6a", size = 17044, upload-time = "2026-10-22T16:24:30.353Z" },
 ]
 
 [[package]]
@@ -1642,6 +1663,7 @@ name = "stocks-prediction"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "aider" },
     { name = "matplotlib" },
     { name = "pandas" },
     { name = "scikit-learn" },
@@ -1650,6 +1672,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "aider", specifier = ">=0.2.6" },
     { name = "matplotlib", specifier = ">=3.11.2" },
     { name = "pandas", specifier = ">=3.0.6" },
     { name = "scikit-learn", specifier = ">=1.9.1" },

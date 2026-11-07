@@ -6,7 +6,7 @@ from src.stocks_prediction.indicators import calculate_rsi
 from src.stocks_prediction.returns import compute_net_return_series
 
 
-def build_feature_matrix(
+def build_feature_matrix(aux,
     df: pd.DataFrame,
     df_pca: pd.DataFrame,
     target_stock: str,
@@ -44,6 +44,12 @@ def build_feature_matrix(
     Raises:
         ValueError: If a non-percentual label type is requested without a budget.
     """
+    if label_type not in ("profit", "percentage"):
+        raise ValueError(
+            f"Invalid label_type: {label_type!r}. "
+            "Please, label_type must be either 'profit' or 'percentage'."
+        )
+
     df = df.sort_index()
 
     if (label_type != "percentage") and (budget is None):
@@ -124,6 +130,16 @@ def build_feature_matrix(
         axis=1,
     )
 
+    print("print(len(x_train.index>=aux)):",(x_train.index>=aux).sum())
+    # Right before "# Targets and price":
+    if ohlcv is not None:
+        # Align each field to the rows of df, then build the leak-free OHLCV features
+        aligned = {name: table[target_stock].reindex(df.index) for name, table in ohlcv.items()}
+        ohlcv_features = build_ohlcv_features(
+            aligned["open"], aligned["high"], aligned["low"], aligned["close"], aligned["volume"],
+        )
+        x_train = pd.concat([x_train, ohlcv_features.reindex(x_train.index)], axis=1)
+
     # Targets and price
     x_train["price"] = df[target_stock]
     
@@ -137,25 +153,54 @@ def build_feature_matrix(
         x_train.loc[invested_capital == 0, "target"] = 0
 
         x_train["target_logical"] = (x_net_return >= profit).astype(int)
+        print("oh oh")
+        print(x_train.iloc[-1][["target", "target_logical"]])
         
     else:
         print("got here!")
         x_train["target"] = df[target_stock].pct_change().shift(-1)
         x_train["target_logical"] = (x_train["target"] > 0).astype(int)
+        print(x_train.iloc[-1][["target", "target_logical"]])
         
+    
+    
+    
+    assert x_train.iloc[-1].drop(
+        labels=["target", "target_logical"],
+        ).notna().all(), (
+        "NaNs in the last row are only allowed in 'target' and 'target_logic'. "
+        "Unexpected NaNs may indicate data leakage or a feature engineering issue."
+    )
 
-    # Right before "# Targets and price":
-    if ohlcv is not None:
-        # Align each field to the rows of df, then build the leak-free OHLCV features
-        aligned = {name: table[target_stock].reindex(df.index) for name, table in ohlcv.items()}
-        ohlcv_features = build_ohlcv_features(
-            aligned["open"], aligned["high"], aligned["low"], aligned["close"], aligned["volume"],
-        )
-        x_train = pd.concat([x_train, ohlcv_features.reindex(x_train.index)], axis=1)
+    print("%"*20)
+    print("\nNaNs per column:")
+    nan_mask = x_train.isna()
 
+    print("Total NaNs:", nan_mask.sum().sum())
+    print(nan_mask.sum()[nan_mask.sum() > 0])
 
+    print("\nRows containing NaNs:", nan_mask.any(axis=1).sum())
+
+    print("\nNaNs in rows >= aux:")
+    x_eval = x_train.loc[x_train.index >= aux]
+
+    # Identify columns with at least one NaN in the evaluation period
+    nan_columns = x_eval.columns[x_eval.isna().any(axis=0)]
+
+    # Keep only those columns and rows containing NaNs
+    x_train_nans = x_eval.loc[
+        x_eval[nan_columns].isna().any(axis=1),
+        nan_columns
+    ]
+
+    print("\nNaN locations:")
+    print(x_train_nans)
+    print("%"*20)
+    print(x_train.shape)
+    
+    
     x_train = x_train.dropna()
-
+    print("print(len(x_train.index>=aux)) 2:",(x_train.index>=aux).sum())
     price = x_train["price"]
     y = x_train["target"]
     y_logical = x_train["target_logical"]
@@ -163,11 +208,11 @@ def build_feature_matrix(
     x_train = x_train.drop(columns=["target"])
     x_train = x_train.drop(columns=["price"])
     x_train = x_train.drop(columns=["target_logical"])
-
+    print("print(len(x_train.index>=aux)) 3:",(x_train.index>=aux).sum())
     return x_train, y, y_logical, price
 
 
-def build_relevant_features(prices: pd.DataFrame, target_stock: str) -> pd.DataFrame:
+'''def build_relevant_features(prices: pd.DataFrame, target_stock: str) -> pd.DataFrame:
     """Build features that use only information available up to each date.
     Args:
         prices: Price table (one column per stock), indexed by date, sorted ascending.
@@ -212,7 +257,7 @@ def build_relevant_features(prices: pd.DataFrame, target_stock: str) -> pd.DataF
 
 
     result = result.dropna()
-    return result
+    return result'''
 
 def build_ohlcv_features(
     open_: pd.Series,
@@ -233,13 +278,13 @@ def build_ohlcv_features(
         Rows are NaN until each rolling window is complete.
     """
     prev_close = close.shift(1)
-    day_range = (high - low).replace(0, np.nan)
-    log_volume = np.log(volume.replace(0, np.nan))
+    day_range = (high - low)#.replace(0, np.nan)
+    log_volume = np.log(volume.where(volume != 0, 1)) #np.log(volume.replace(0, np.nan))
     # Known at the open of day t
-    gap_open = open_ / prev_close - 1
+    gap_open = (open_ / (prev_close) - 1).where(prev_close!=0, 0)
     # Known after the close of day t-1 (shifted by 1)
-    range_pct = ((high - low) / close).shift(1)
-    close_location = ((close - low) / day_range).shift(1)
+    range_pct = ((high - low) / (close)).where(close!=0, 0).shift(1)
+    close_location = ((close - low) / (day_range)).where(day_range!=0, 0).shift(1)
     # Parkinson volatility: uses only the high-low range
     parkinson_daily = np.log(high / low) ** 2 / (4 * np.log(2))
     park_vol_5 = np.sqrt(parkinson_daily.rolling(5).mean()).shift(1)
@@ -257,10 +302,34 @@ def build_ohlcv_features(
     volume_z_20 = (
         (log_volume - log_volume.rolling(20).mean()) / log_volume.rolling(20).std()
     ).shift(1)
+
+
+
+    volume_mean = log_volume.rolling(20).mean()
+    volume_std = log_volume.rolling(20).std()
+
+    diagnostics = pd.DataFrame({
+        "log_volume": log_volume,
+        "mean": volume_mean,
+        "std": volume_std,
+        "ratio": log_volume - volume_mean,
+        "z_score": (log_volume - volume_mean) / volume_std,
+    })
+
+    print(diagnostics[diagnostics["z_score"].isna()].to_string())
+
+
+
+    volume_z_20 = volume_z_20.replace([np.inf, -np.inf], 0)
+    volume_z_20 = volume_z_20.mask(((log_volume - log_volume.rolling(20).mean()).shift(1) == 0) & (log_volume.rolling(20).std().shift(1) == 0), 0)
+
     prev_return = close.pct_change().shift(1)
     signed_volume = np.sign(prev_return) * volume_ratio
     # Smoothed close location: persistent buying or selling pressure
     close_location_ma_5 = close_location.rolling(5).mean()
+
+    
+
     return pd.DataFrame({
         "gap_open": gap_open,
         "range_pct": range_pct,

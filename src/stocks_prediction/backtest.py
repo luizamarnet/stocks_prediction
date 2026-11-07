@@ -39,6 +39,7 @@ def backtest(
     commission_bps: float,
     profit: float = 30.00,
     label_type: str = "percentage",
+    regressor_flag: bool = False,
 
 ) -> tuple[np.ndarray, list[float], list[float], list[float]]:
     """Simulate the strategy and the buy & hold benchmark over the prediction period.
@@ -59,6 +60,21 @@ def backtest(
         Tuple of (cumulative strategy PnL, strategy PnL as a fraction of budget,
         cumulative benchmark PnL, benchmark PnL as a fraction of budget).
     """
+
+    if label_type not in ("profit", "percentage"):
+        raise ValueError(
+            f"Invalid label_type: {label_type!r}. "
+            "Please, label_type must be either 'profit' or 'percentage'."
+        )
+
+    predictions = predictions.sort_index()
+    assert predictions.index.is_monotonic_increasing, (
+        "predictions must be sorted chronologically"
+    )
+
+    commission_rate = commission_bps / 10_000.0
+
+
     pnl_total = 0.0
     open_order = False
     pnl_test: list[float] = []
@@ -66,9 +82,11 @@ def backtest(
     n_buyings = 0
     n_days_holding = 0
     entry_price_0 = float(predictions.iloc[0]["price_test"])
-    n_stocks_0 = budget // entry_price_0
-    entry_fee_0 = buy_sell_fee + (commission_bps / 10000.0) * (n_stocks_0 * entry_price_0)
+    n_stocks_0 = int((new_budget - buy_sell_fee) // (entry_price_0 * (1 + commission_rate)))
+    entry_fee_0 = buy_sell_fee + commission_rate * (n_stocks_0 * entry_price_0)
     pnl_test_no_code: list[float] = []
+
+
 
     for i in range(len(predictions)):
         results = predictions.iloc[i]
@@ -76,18 +94,37 @@ def backtest(
         prob_preds = results["classe_predict_proba"]
         test_preds = (prob_preds > PROBABILITY_THRESHOLD).astype(int)
 
-        if (label_type == "percentage"):
+        if (label_type == "percentage") and (regressor_flag):
             pred_percent = results["retorno_previsto"]
         price_test = results["price_test"]
 
         # Candidate entry: size the position with the current budget and estimate its profit
         entry_price_aux = float(price_test)
-        n_stocks_aux = new_budget // entry_price_aux
-        entry_fee_aux = buy_sell_fee + (commission_bps / 10000.0) * (n_stocks_aux * entry_price_aux)
-        if (label_type == "percentage"):
+        n_stocks_aux =   int((new_budget - buy_sell_fee) // (entry_price_aux * (1 + commission_rate))  )
+
+        if n_stocks_aux <= 0:
+            pnl_test.append(0.0)
+
+            exit_price_i = float(price_test)
+            pnl_test_no_code_i = _calculate_trade_pnl(
+                n_stocks_0, entry_price_0, entry_fee_0,
+                exit_price_i, buy_sell_fee, commission_bps,
+            )
+            pnl_test_no_code.append(pnl_test_no_code_i)
+
+            continue
+
+        entry_fee_aux = buy_sell_fee + commission_rate * (n_stocks_aux * entry_price_aux)
+        
+        if (label_type == "percentage") and (regressor_flag):
             pred_exit_price = pred_percent * entry_price_aux + entry_price_aux
-            pred_exit_fee = buy_sell_fee + (commission_bps / 10000.0) * (n_stocks_aux * pred_exit_price)
-            pred_profit = n_stocks_aux * (pred_exit_price - entry_price_aux) - entry_fee_aux - pred_exit_fee
+            if not open_order:
+                pred_exit_fee = buy_sell_fee + commission_rate * (n_stocks_aux * pred_exit_price)
+                pred_profit = n_stocks_aux * (pred_exit_price - entry_price_aux) - entry_fee_aux - pred_exit_fee
+            else:
+                pred_exit_fee = buy_sell_fee + commission_rate * (n_stocks_i * pred_exit_price)
+                pred_profit = n_stocks_0 * (pred_exit_price - entry_price_i) - entry_fee_i - pred_exit_fee
+                            
             pred_profit_signal = pred_profit > 0        
         else:
             pred_profit_signal = True
@@ -151,6 +188,7 @@ def backtest(
             )
             pnl_test_no_code.append(pnl_test_no_code_i)
 
+    
     pnl_test = np.cumsum(pnl_test)
     pnl_test_no_code_percent = [pnl / budget for pnl in pnl_test_no_code]
     pnl_test_percent = [pnl / budget for pnl in pnl_test]
@@ -163,7 +201,7 @@ def backtest(
     print(f"number of buying actions {n_buyings}")
 
     # Benchmark summary over the full period
-    n_stocks_i = budget // entry_price_0
+    n_stocks_i = int((budget - buy_sell_fee) // (entry_price_0 * (1 + commission_rate))  ) 
     last_price = float(predictions.iloc[-1]["price_test"])
     no_code_profit = _calculate_trade_pnl(
         n_stocks_i, entry_price_0,

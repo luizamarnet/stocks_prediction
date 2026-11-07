@@ -1,5 +1,6 @@
 """Entry point: week-by-week walk-forward evaluation of the MLP strategy for every stock."""
 import pandas as pd
+import numpy as np
 
 from src.stocks_prediction.backtest import backtest
 from src.stocks_prediction.data_loader import (
@@ -24,21 +25,30 @@ RESULTS_NO_CODE_PERCENT_CSV = "./resultados_all_stocks_pnl_no_code_percent.csv"
 def main() -> None:
     """Run the full pipeline: walk-forward per stock, backtest, save results and plots."""
     # Strategy and trading parameters
-    budget: float = 15000
+    budget: float = 700
     commission_bps: float = 0.08
     buy_sell_fee: float = 2
     n_pca_components: int = 2
     n_past_days: int = 5
 
     profit: float =5.00
-    label_type: str = "profit"
+    label_type: str = "percentage"
+    regressor_flag: bool = True
+
+    if label_type not in ("profit", "percentage"):
+        raise ValueError(
+            f"Invalid label_type: {label_type!r}. "
+            "Please, label_type must be either 'profit' or 'percentage'."
+        )
+    if label_type=="profit":
+        regressor_flag=False
 
     
 
     # 1. Load the datasets
     train_raw, test_raw = load_raw_data()            # used for dates and stock names
     ohlcv = load_ohlcv(OHLCV_FIELDS)                 # open, high, low, close, volume
-    full = build_full_dataset(train_raw, test_raw)   # open prices: the target series
+    full = build_full_dataset(train_raw, test_raw)   # close prices: the target series
 
     # Walk-forward parameters
     train_size: int = len(train_raw) #1500                   # training window length (trading days)
@@ -80,8 +90,15 @@ def main() -> None:
             commission_bps=commission_bps,
             profit=profit,
             label_type=label_type,
+            regressor_flag=regressor_flag,
         )
-
+        
+        week_positions = np.where(week_labels == test_weeks[0])[0]
+        week_start, week_end = week_positions[0], week_positions[-1] + 1
+        week_dates = full.index[week_start:week_end]
+        print(len(predictions))
+        print(len(full.loc[full.index>=week_dates[0]])-1)
+        assert (len(predictions))==(len(full.loc[full.index>=week_dates[0]])-1)
         # Trade simulation and benchmark
         pnl_test, pnl_test_percent, pnl_test_no_code, pnl_test_no_code_percent = backtest(
             predictions, target_stock, budget, buy_sell_fee, commission_bps, profit=profit, label_type=label_type,

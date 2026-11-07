@@ -2,9 +2,9 @@
 import numpy as np
 import pandas as pd
 
-TRAIN_PATH = "data/processed_data/train_close.csv"
-VALIDATION_PATH = "data/processed_data/validation_close.csv"
-TEST_PATH = "data/processed_data/test_close.csv"
+TRAIN_PATH = "data/processed_data/train_open.csv"
+VALIDATION_PATH = "data/processed_data/validation_open.csv"
+TEST_PATH = "data/processed_data/test_open.csv"
 
 
 def load_raw_data() -> tuple[pd.DataFrame, pd.DataFrame]:
