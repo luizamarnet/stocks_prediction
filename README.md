@@ -343,11 +343,11 @@ In the graphs bellow, blue represents the results obtained by our strategy on ex
 
 Stocks where the model-driven strategy performed exceptionally well.
 
-![good results](results_percentage_WITHOUTregressor\plots\AGAT.CO_accumulatedPnL_percentage.png)
+![good results](.\AGAT.CO_accumulatedPnL_percentage.png)
 
 Stocks where the buy-and-hold strategy outperformed the model-driven strategy.
 
-![bad results](results_percentage_WITHOUTregressor\plots\ALSYDB.CO_accumulatedPnL_percentage.png)
+![bad results](.\ALSYDB.CO_accumulatedPnL_percentage.png)
 
 **Discussion**
 

@@ -35,3 +35,5 @@ select_features.py
 src/stocks_prediction/diagnostics.py
 src/stocks_prediction/feature_importance.py
 src/stocks_prediction/teste.py
+pnl_table_analysis.py
+TBD.txt
