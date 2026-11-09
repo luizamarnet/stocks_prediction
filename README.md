@@ -332,8 +332,8 @@ Statistics across all daily trades and stocks (returns in %)
 | Max    |    196.690  | 29.294  | 197.012  |  29.280966 | 197.039
 
 Strategy vs. Buy-and-Hold
-- In Experiment A, our strategy outperformed buy-and-hold in 40.92% of all trades across stocks and dates.
-- In Experiment B, our strategy outperformed buy-and-hold in 41.67% of all trades across stocks and dates.
+- In Experiment A, our strategy outperformed buy-and-hold in 40.92% of all individual trades across stocks and dates. However, when comparing the accumulated PnL at the end of the evaluation period, our strategy outperformed buy-and-hold for 54.29% of the stocks evaluated.
+- In Experiment B, our strategy outperformed buy-and-hold in 41.67% of all individual trades across stocks and dates. However, based on the accumulated PnL at the end of the evaluation period, our strategy outperformed buy-and-hold for 61.43% of the stocks evaluated.
 
 ### 3. Plots
 
