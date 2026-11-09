@@ -74,9 +74,9 @@ def run_walk_forward(
         # Evaluation: history (for features) + the week itself
         eval_df = full.iloc[max(0, week_start - warmup):]#[max(0, week_start - warmup):week_end + 1]
 
-        print("eval len:",len(eval_df.loc[eval_df.index>=week_dates[0]]))
-        print(train_df.tail())
+        #print(train_df.tail())
         assert train_df.index.max() < week_dates[0]
+        expected_last_train_day = train_df.index[-2]
 
         n_val = int(len(train_df) * val_frac)
         train_df_aux = train_df.iloc[:-n_val]
@@ -92,18 +92,18 @@ def run_walk_forward(
         X_test_pca = prepare_pca_data_test(pca, eval_df, 
                                             budget=budget, buy_sell_fee = buy_sell_fee, commission_bps = commission_bps, label_type=label_type)
 
-        print("#"*30)
-        print("train")
         X_train, y_train, y_logical_train, _ = build_feature_matrix(week_dates[0],
             train_df, X_train_pca, target_stock, n_pca_components, n_past_days, ohlcv=ohlcv, 
             budget=budget, buy_sell_fee = buy_sell_fee, commission_bps = commission_bps, profit=profit,  label_type=label_type,
         )
-        print("test")
+        
+        assert X_train.index.max() <= expected_last_train_day
+        
         X_test, y_test, y_logical_test, price_test = build_feature_matrix(week_dates[0],
             eval_df, X_test_pca, target_stock, n_pca_components, n_past_days, ohlcv=ohlcv,
             budget=budget, buy_sell_fee = buy_sell_fee, commission_bps = commission_bps, profit=profit, label_type=label_type, 
         )
-        print("#"*30)
+
         
         week_mask = X_test.index>=week_dates[0]#X_test.index.isin(week_dates)
         X_test = X_test[week_mask]
@@ -111,12 +111,11 @@ def run_walk_forward(
         y_logical_test = y_logical_test[week_mask]
         price_test = price_test[week_mask]
 
-        print(X_train.shape)
-        print(X_test.shape)
-        print(X_train.tail())
-        print(X_test.head())
-        print(X_test.tail())
-        print("test a:",X_test.shape)
+        #print(X_train.shape)
+        #print(X_test.shape)
+        #print(X_train.tail())
+        #print(X_test.head())
+        #print(X_test.tail())
         
 
         if X_test.empty:
@@ -126,9 +125,8 @@ def run_walk_forward(
         assert X_train.index.max() < week_dates[0]
         assert X_test.index.min() >= week_dates[0] and X_test.index.max() <= full.index[-2]#and X_test.index.max() <= week_dates[-1]
 
+        print(f"###{target_stock}###") #print(f"{target_stock} - count down: {week_counter}/{len(test_weeks)}")
         
-        #print("#" * 30)
-        print(f"{target_stock} - count down: {week_counter}/{len(test_weeks)}")
         week_counter += 1
 
         
@@ -167,6 +165,7 @@ def run_walk_forward(
             y_pred_test = regressor.predict(X_test)
             print("\n--- Test Report (regressor) ---")
             print("MAE:", mean_absolute_error(y_test, y_pred_test))
+            #test_error = np.sqrt(mean_squared_error(y_test, y_pred_test))
             print("RMSE:", np.sqrt(mean_squared_error(y_test, y_pred_test)))
             print("R²:", r2_score(y_test, y_pred_test))
 
@@ -176,6 +175,9 @@ def run_walk_forward(
                 "classe_predict_proba": classifier.predict_proba(X_test)[:, 1],
                 "retorno_previsto": regressor.predict(X_test),#-best_loss_regr,
                 "price_test": price_test,
+                "val_error": best_loss_regr,
+                "test_error": np.sqrt((y_test - y_pred_test)**2),
+                "test_returns": y_test,
             }, index=X_test.index))
         else:
             # Store this week's predictions

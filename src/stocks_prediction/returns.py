@@ -30,11 +30,12 @@ def compute_net_return_series(
         )
     
     if (label_type != "percentage"):
-        n_stocks = budget // prices.shift(1)
+        n_stocks = ((budget - buy_sell_fee) // (prices.shift(1) * (1 + (commission_bps / 10000.0)))).astype(("Int64"))
         entry_fee = buy_sell_fee + (commission_bps / 10000.0) * (n_stocks * prices.shift(1))
         exit_fee = buy_sell_fee + (commission_bps / 10000.0) * (n_stocks * prices)
         invested_capital = n_stocks * prices.shift(1)
+        assert budget >= (invested_capital+entry_fee).all().all()
         df_return = (n_stocks * (prices - prices.shift(1)) - exit_fee - entry_fee) / invested_capital
-        df_return[invested_capital==0] = 0
+        df_return[(invested_capital==0) & (df_return.notna()) ] = 0
         return df_return
     return prices.pct_change()

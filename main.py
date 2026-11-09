@@ -21,19 +21,20 @@ RESULTS_NO_CODE_CSV = "./resultados_all_stocks_pnl_no_code.csv"
 RESULTS_CODE_PERCENT_CSV = "./resultados_all_stocks_pnl_code_percent.csv"
 RESULTS_NO_CODE_PERCENT_CSV = "./resultados_all_stocks_pnl_no_code_percent.csv"
 
+REGRESSOR_PERFORMANCE = "./regressor_performance.csv"
 
 def main() -> None:
     """Run the full pipeline: walk-forward per stock, backtest, save results and plots."""
     # Strategy and trading parameters
-    budget: float = 700
+    budget: float = 15000
     commission_bps: float = 0.08
-    buy_sell_fee: float = 2
+    buy_sell_fee: float = 2.00
     n_pca_components: int = 2
     n_past_days: int = 5
 
     profit: float =5.00
-    label_type: str = "percentage"
-    regressor_flag: bool = True
+    label_type: str = "profit"
+    regressor_flag: bool = False
 
     if label_type not in ("profit", "percentage"):
         raise ValueError(
@@ -96,30 +97,29 @@ def main() -> None:
         week_positions = np.where(week_labels == test_weeks[0])[0]
         week_start, week_end = week_positions[0], week_positions[-1] + 1
         week_dates = full.index[week_start:week_end]
-        print(len(predictions))
-        print(len(full.loc[full.index>=week_dates[0]])-1)
         assert (len(predictions))==(len(full.loc[full.index>=week_dates[0]])-1)
+        
         # Trade simulation and benchmark
-        pnl_test, pnl_test_percent, pnl_test_no_code, pnl_test_no_code_percent = backtest(
-            predictions, target_stock, budget, buy_sell_fee, commission_bps, profit=profit, label_type=label_type,
+        daily_pnl_strategy, daily_return_strategy_percent, daily_pnl_buy_hold, daily_return_buy_hold_percent = backtest(
+            predictions, target_stock, budget, buy_sell_fee, commission_bps, label_type=label_type, regressor_flag=regressor_flag,
         )
 
-        # Accumulate results across stocks (one column per stock)
+        # Daily results across stocks (one column per stock)
         results_all_pnl_code = pd.concat(
-            [results_all_pnl_code, pd.Series(pnl_test, index=predictions.index, name=target_stock)],
+            [results_all_pnl_code, pd.Series(daily_pnl_strategy, index=predictions.index, name=target_stock)],
             axis=1,
         )
         results_all_pnl_no_code = pd.concat(
-            [results_all_pnl_no_code, pd.Series(pnl_test_no_code, index=predictions.index, name=target_stock)],
+            [results_all_pnl_no_code, pd.Series(daily_pnl_buy_hold, index=predictions.index, name=target_stock)],
             axis=1,
         )
         results_all_pnl_code_percent = pd.concat(
-            [results_all_pnl_code_percent, pd.Series(pnl_test_percent, index=predictions.index, name=target_stock)],
+            [results_all_pnl_code_percent, pd.Series(daily_return_strategy_percent, index=predictions.index, name=target_stock)],
             axis=1,
         )
         results_all_pnl_no_code_percent = pd.concat(
             [results_all_pnl_no_code_percent,
-             pd.Series(pnl_test_no_code_percent, index=predictions.index, name=target_stock)],
+             pd.Series(daily_return_buy_hold_percent, index=predictions.index, name=target_stock)],
             axis=1,
         )
 
@@ -134,22 +134,27 @@ def main() -> None:
         results_all_pnl_code_percent.to_csv(RESULTS_CODE_PERCENT_CSV, index=True)
         results_all_pnl_no_code_percent.to_csv(RESULTS_NO_CODE_PERCENT_CSV, index=True)
 
-        # Per-stock accumulated PnL plots (absolute and percentage)
-        plot_graphs(target_stock, pnl_test, pnl_test_no_code,
-                    percent=False, save_path=RESULTS_PLOTS_DIR, dates=predictions.index)
-        plot_graphs(target_stock, pnl_test_percent, pnl_test_no_code_percent,
-                    percent=True, save_path=RESULTS_PLOTS_DIR, dates=predictions.index)
+        if regressor_flag:
+            predictions[["val_error","test_error","test_returns"]].to_csv(REGRESSOR_PERFORMANCE, index=True)
 
+        # Per-stock accumulated PnL plots (absolute and percentage)
+        plot_graphs(target_stock, daily_pnl_strategy, daily_pnl_buy_hold,
+                    percent=False, save_path=RESULTS_PLOTS_DIR, dates=predictions.index)
+        
+        plot_graphs(target_stock, daily_return_strategy_percent, daily_return_buy_hold_percent,
+                    percent=True, save_path=RESULTS_PLOTS_DIR, dates=predictions.index)
+        
+        
         # Running totals
-        total_profit_code += pnl_test[-1]
-        total_profit_no_code += pnl_test_no_code[-1]
+        total_profit_code += np.cumsum(daily_pnl_strategy).iloc[-1]
+        total_profit_no_code += np.cumsum(daily_pnl_buy_hold).iloc[-1]
         print(f"Total profit code: {total_profit_code}")
         print(f"Total profit no code: {total_profit_no_code}")
         print(f"Total profit difference (code-no_code): {total_profit_code - total_profit_no_code}")
-        print(f"Total profit code (percent): {total_profit_code / (budget * n_stocks_analyzed)}")
-        print(f"Total profit no code (percent): {total_profit_no_code / (budget * n_stocks_analyzed)}")
+        print(f"Total profit code (percent): {total_profit_code / (budget * n_stocks_analyzed):.2%}")
+        print(f"Total profit no code (percent): {total_profit_no_code / (budget * n_stocks_analyzed):.2%}")
         print(f"Total profit difference (code-no_code) (percent): "
-              f"{(total_profit_code - total_profit_no_code) / (budget * n_stocks_analyzed)}")
+              f"{(total_profit_code - total_profit_no_code) / (budget * n_stocks_analyzed):.2%}")
 
         # 4. Reload the saved results and plot the cross-stock comparison
         df_pnl_code = pd.read_csv(RESULTS_CODE_CSV, index_col="Date", parse_dates=True)
@@ -164,8 +169,13 @@ def main() -> None:
         plot_profit_boxplots(df_pnl_code, df_pnl_no_code, percent=False, save_path=RESULTS_PLOTS_DIR)
         plot_profit_boxplots(df_pnl_code_percent, df_pnl_no_code_percent, percent=True, save_path=RESULTS_PLOTS_DIR)
 
-        plot_graphs_profit(df_pnl_code, df_pnl_no_code, percent=False, save_path=RESULTS_PLOTS_DIR)
-        plot_graphs_profit(df_pnl_code_percent, df_pnl_no_code_percent, percent=True, save_path=RESULTS_PLOTS_DIR)
+        plot_graphs_profit(np.cumsum(df_pnl_code), np.cumsum(df_pnl_no_code), percent=False, save_path=RESULTS_PLOTS_DIR)
+        plot_graphs_profit(
+            (1 + df_pnl_code_percent).cumprod() - 1,
+            (1 + df_pnl_no_code_percent).cumprod() - 1,
+            percent=True,
+            save_path=RESULTS_PLOTS_DIR,
+        )
 
 
 if __name__ == "__main__":

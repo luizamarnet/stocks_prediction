@@ -130,7 +130,6 @@ def build_feature_matrix(aux,
         axis=1,
     )
 
-    print("print(len(x_train.index>=aux)):",(x_train.index>=aux).sum())
     # Right before "# Targets and price":
     if ohlcv is not None:
         # Align each field to the rows of df, then build the leak-free OHLCV features
@@ -144,23 +143,23 @@ def build_feature_matrix(aux,
     x_train["price"] = df[target_stock]
     
     if (label_type != "percentage"):
-        n_stocks = budget // df[target_stock]
+        n_stocks = ((budget - buy_sell_fee) // (df[target_stock] * (1 + (commission_bps / 10000.0)))).astype(("Int64"))
         entry_fee = buy_sell_fee + (commission_bps / 10000.0) * (n_stocks * df[target_stock])
         exit_fee = buy_sell_fee + (commission_bps / 10000.0) * (n_stocks * df[target_stock].shift(-1))
         x_net_return = n_stocks * (df[target_stock].shift(-1) - df[target_stock]) - exit_fee - entry_fee
         invested_capital = n_stocks*df[target_stock]
+        
+        assert budget >= (invested_capital+entry_fee).all().all()
+        
         x_train["target"] = x_net_return/invested_capital
-        x_train.loc[invested_capital == 0, "target"] = 0
+        x_train.loc[(invested_capital == 0) & (x_net_return.notna()), "target"] = 0
 
-        x_train["target_logical"] = (x_net_return >= profit).astype(int)
-        print("oh oh")
-        print(x_train.iloc[-1][["target", "target_logical"]])
+        x_train["target_logical"] = (x_net_return >= profit).astype(("Int64"))
         
     else:
-        print("got here!")
+        
         x_train["target"] = df[target_stock].pct_change().shift(-1)
         x_train["target_logical"] = (x_train["target"] > 0).astype(int)
-        print(x_train.iloc[-1][["target", "target_logical"]])
         
     
     
@@ -172,16 +171,7 @@ def build_feature_matrix(aux,
         "Unexpected NaNs may indicate data leakage or a feature engineering issue."
     )
 
-    print("%"*20)
-    print("\nNaNs per column:")
-    nan_mask = x_train.isna()
-
-    print("Total NaNs:", nan_mask.sum().sum())
-    print(nan_mask.sum()[nan_mask.sum() > 0])
-
-    print("\nRows containing NaNs:", nan_mask.any(axis=1).sum())
-
-    print("\nNaNs in rows >= aux:")
+    
     x_eval = x_train.loc[x_train.index >= aux]
 
     # Identify columns with at least one NaN in the evaluation period
@@ -193,14 +183,10 @@ def build_feature_matrix(aux,
         nan_columns
     ]
 
-    print("\nNaN locations:")
-    print(x_train_nans)
-    print("%"*20)
-    print(x_train.shape)
     
     
     x_train = x_train.dropna()
-    print("print(len(x_train.index>=aux)) 2:",(x_train.index>=aux).sum())
+    
     price = x_train["price"]
     y = x_train["target"]
     y_logical = x_train["target_logical"]
@@ -208,7 +194,7 @@ def build_feature_matrix(aux,
     x_train = x_train.drop(columns=["target"])
     x_train = x_train.drop(columns=["price"])
     x_train = x_train.drop(columns=["target_logical"])
-    print("print(len(x_train.index>=aux)) 3:",(x_train.index>=aux).sum())
+    
     return x_train, y, y_logical, price
 
 
@@ -308,17 +294,7 @@ def build_ohlcv_features(
     volume_mean = log_volume.rolling(20).mean()
     volume_std = log_volume.rolling(20).std()
 
-    diagnostics = pd.DataFrame({
-        "log_volume": log_volume,
-        "mean": volume_mean,
-        "std": volume_std,
-        "ratio": log_volume - volume_mean,
-        "z_score": (log_volume - volume_mean) / volume_std,
-    })
-
-    print(diagnostics[diagnostics["z_score"].isna()].to_string())
-
-
+    
 
     volume_z_20 = volume_z_20.replace([np.inf, -np.inf], 0)
     volume_z_20 = volume_z_20.mask(((log_volume - log_volume.rolling(20).mean()).shift(1) == 0) & (log_volume.rolling(20).std().shift(1) == 0), 0)

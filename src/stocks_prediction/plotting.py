@@ -28,17 +28,31 @@ def plot_graphs(
     """
     
     # Convert the sequences to NumPy arrays for element-wise operations
-    pnl_code_arr = np.array(pnl_code)
-    pnl_no_code_arr = np.array(pnl_test_no_code)
+    pnl_code_arr = np.asarray(pnl_code, dtype=float)
+    pnl_no_code_arr = np.asarray(pnl_test_no_code, dtype=float)
+
     x_values = dates if dates is not None else np.arange(len(pnl_code_arr))
 
+    # Difference between daily results
+    pnl_diff = pnl_code_arr - pnl_no_code_arr
+
     if percent:
-        pnl_code_arr*=100
-        pnl_no_code_arr*=100
+        # Compound daily percentage returns
+        pnl_code_arr = (1 + pnl_code_arr).cumprod() - 1
+        pnl_no_code_arr = (1 + pnl_no_code_arr).cumprod() - 1
+
+        # Convert to percentage points for plotting
+        pnl_code_arr *= 100
+        pnl_no_code_arr *= 100
+        pnl_diff *= 100
+    else:
+        # Accumulate daily monetary PnL
+        pnl_code_arr = np.cumsum(pnl_code_arr)
+        pnl_no_code_arr = np.cumsum(pnl_no_code_arr)
     # 1. Box plot of the difference between strategy and benchmark
     plt.figure(figsize=(8, 6))
     plt.boxplot(
-        pnl_code_arr - pnl_no_code_arr,
+        pnl_diff,
         orientation="vertical",
         patch_artist=True,
         boxprops=dict(facecolor="lightgreen", color="green"),
@@ -47,11 +61,11 @@ def plot_graphs(
     )
     plt.axhline(0, color="black", linestyle="--", linewidth=1, label="Tie (0)")
     if percent:
-        plt.title(f"Distribution of Percentage Return Difference - {target_stock}", fontsize=14)
-        plt.ylabel("Percentage Difference (Code - Benchmark)", fontsize=12)
+        plt.title(f"Distribution of Daily Return Difference - {target_stock}")
+        plt.ylabel("Daily Return Difference (percentage points)")
     else:
-        plt.title(f"Distribution of Return Difference - {target_stock}", fontsize=14)
-        plt.ylabel("Difference (Code - Benchmark)", fontsize=12)
+        plt.title(f"Distribution of Daily PnL Difference - {target_stock}")
+        plt.ylabel("Daily PnL Difference ($)")
     plt.xticks([1], ["Performance Difference"])
     plt.legend(loc="best")
     plt.grid(True, linestyle=":", alpha=0.6)
@@ -121,11 +135,11 @@ def plot_graphs_diff(
     )
     ax.axhline(0, color="black", linestyle="--", linewidth=1, label="Tie (0)")
     if percent:
-        ax.set_title("Percentage PnL Difference (with code - without code) per stock")
-        ax.set_ylabel("Percentage PnL Difference")
+        ax.set_title("Distribution of Daily Return Difference per Stock")
+        ax.set_ylabel("Daily Return Difference (percentage points)")
     else:
-        ax.set_title("PnL Difference (with code - without code) per stock")
-        ax.set_ylabel("PnL Difference")
+        ax.set_title("Distribution of Daily PnL Difference per Stock")
+        ax.set_ylabel("Daily PnL Difference ($)")
     ax.set_xlabel("Stock")
     ax.grid(True, linestyle=":", alpha=0.6)
     ax.legend(loc="best")
@@ -234,11 +248,11 @@ def plot_profit_boxplots(
     ax.set_xticklabels(stocks, rotation=45, ha="right")
     ax.set_xlabel("Stock")
     if percent:
-        ax.set_title("Distribution of percentage PnL per stock: with code vs market")
-        ax.set_ylabel("Accumulated percentage PnL (%)")
+        ax.set_title("Distribution of Daily Returns per Stock")
+        ax.set_ylabel("Daily Return (%)")
     else:
-        ax.set_title("Distribution of PnL per stock: with code vs market")
-        ax.set_ylabel("Accumulated PnL ($)")
+        ax.set_title("Distribution of Daily PnL per Stock")
+        ax.set_ylabel("Daily PnL ($)")
     ax.legend(
         [bp_code["boxes"][0], bp_no_code["boxes"][0]],
         ["With code", "Market (without code)"],

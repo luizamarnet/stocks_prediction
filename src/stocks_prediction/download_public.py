@@ -6,7 +6,7 @@ from io import StringIO
 from typing import List, Optional
 import logging
 import argparse
-from datetime import datetime
+from datetime import date, datetime
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -175,20 +175,29 @@ def download_data(
     for i in range(0, len(formatted_tickers), batch_size):
         batch = formatted_tickers[i:i + batch_size]
         logger.info(f"Downloading batch {i//batch_size + 1}/{(len(formatted_tickers) + batch_size - 1)//batch_size}: {len(batch)} tickers")
+
+        download_kwargs = {
+            "tickers": batch,
+            "auto_adjust": True,
+            "progress": False,
+            "group_by": "ticker",
+            "interval": "1d",
+            "threads": True,
+        }
+
+        if start is None and end is None:
+            download_kwargs["period"] = "max"
+
+        elif start is not None:
+            download_kwargs["start"] = start
+            download_kwargs["end"] = end or date.today().strftime("%Y-%m-%d")
+
+        else:
+            download_kwargs["period"] = "max"
         
         for attempt in range(max_retries):
             try:
-                data = yf.download(
-                    tickers=batch,
-                    #start=start,
-                    #end=end,
-                    period="max",
-                    auto_adjust=True,
-                    progress=False,
-                    group_by="ticker",
-                    interval="1d",
-                    threads=True
-                )
+                data = yf.download(**download_kwargs)
                 
                 if data.empty:
                     logger.warning(f"Empty data for batch {batch}")
@@ -203,6 +212,9 @@ def download_data(
                     sleep(retry_delay)
                 else:
                     logger.error(f"Failed to download batch {batch} after {max_retries} attempts")
+
+        if start is None and end is not None and not all_data.empty:
+            all_data = all_data.loc[all_data.index < end]
     
     if not all_data:
         raise RuntimeError("No data was downloaded successfully")
@@ -218,7 +230,7 @@ def download_data(
 
 
 def download_market_data(
-    market: str = "US",
+    #market: str = "US",
     start: str = "2020-01-01",
     end: Optional[str] = None,
     batch_size: int = 40,
@@ -237,6 +249,7 @@ def download_market_data(
     Returns:
         DataFrame with price data
     """
+    market: str = "Copenhagen"
     # Get tickers for the market
     tickers = get_market_tickers(market)
     logger.info(f"Downloading data for {len(tickers)} tickers from {market} market")
@@ -277,12 +290,12 @@ if __name__ == "__main__":
                                         max_help_position=35,
                                         width=100
                                     ))
-    parser.add_argument(
+    '''parser.add_argument(
         "--market", 
         type=str, 
         default="US", 
         help="Market to download (e.g., copenhagen, US, OMXC20)"
-    )
+    )'''
     parser.add_argument("--start_date", type=str)#, default="2020-01-01")
     parser.add_argument(
         "--save",
@@ -293,10 +306,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Normalize market name to uppercase
-    market = args.market.upper()
+    market = "Copenhagen" #args.market.upper()
 
     data = download_market_data(
-        market=market,
+     #   market=market,
         start=args.start_date,
         save_downloaded_data=args.save,
     )
