@@ -341,13 +341,12 @@ Strategy vs. Buy-and-Hold
 
 In the graphs bellow, blue represents the results obtained by our strategy on experiment one and red represents the results obteained by buying and holding.
 
-Stocks where the model-driven strategy performed exceptionally well.
+An example of a stock in which the model-driven strategy significantly outperformed the buy-and-hold strategy.
+![good results](./AGAT.CO_accumulatedPnL_percentage.png)
 
-![good results](.\AGAT.CO_accumulatedPnL_percentage.png)
 
-Stocks where the buy-and-hold strategy outperformed the model-driven strategy.
-
-![bad results](.\ALSYDB.CO_accumulatedPnL_percentage.png)
+An example of a stock in which the buy-and-hold strategy significantly outperformed the model-driven strategy.
+![bad results](./ALSYDB.CO_accumulatedPnL_percentage.png)
 
 **Discussion**
 
