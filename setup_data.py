@@ -11,8 +11,8 @@ from src.stocks_prediction.data_preprocessing import preprocess_and_split
 
 ROOT_DIR = Path(__file__).parent
 
-RAW_DATA_DIR = ROOT_DIR / "data_3" / "raw_data"
-PROCESSED_DATA_DIR = ROOT_DIR / "data_3" / "processed_data"
+RAW_DATA_DIR = ROOT_DIR / "data" / "raw_data"
+PROCESSED_DATA_DIR = ROOT_DIR / "data" / "processed_data"
 
 PRICE_MOMENTS = ["Open", "Close", "High", "Low", "Volume"]
 

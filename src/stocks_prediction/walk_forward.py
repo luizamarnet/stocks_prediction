@@ -83,13 +83,13 @@ def run_walk_forward(
         val_df = train_df.iloc[-n_val-1:]
 
         # PCA is fitted on the training window only and applied to the evaluation window
-        X_train_pca, pca = prepare_pca_data_train(train_df_aux, n_pca_components, 
+        X_train_pca, pca, pca_scaler = prepare_pca_data_train(train_df_aux, n_pca_components, 
                                                   budget=budget, buy_sell_fee = buy_sell_fee, commission_bps = commission_bps, label_type=label_type)
-        val_df_pca = prepare_pca_data_test(pca, val_df, 
+        val_df_pca = prepare_pca_data_test(pca, pca_scaler, val_df, 
                                                     budget=budget, buy_sell_fee = buy_sell_fee, commission_bps = commission_bps, label_type=label_type)
         
         X_train_pca = pd.concat([X_train_pca,val_df_pca], axis=0)
-        X_test_pca = prepare_pca_data_test(pca, eval_df, 
+        X_test_pca = prepare_pca_data_test(pca, pca_scaler, eval_df, 
                                             budget=budget, buy_sell_fee = buy_sell_fee, commission_bps = commission_bps, label_type=label_type)
 
         X_train, y_train, y_logical_train, _ = build_feature_matrix(week_dates[0],

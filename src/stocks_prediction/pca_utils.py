@@ -3,7 +3,7 @@ import pandas as pd
 from sklearn.decomposition import PCA
 
 from src.stocks_prediction.returns import compute_net_return_series
-
+from sklearn.preprocessing import StandardScaler
 
 def prepare_pca_data_train(
     df: pd.DataFrame,
@@ -12,7 +12,7 @@ def prepare_pca_data_train(
     buy_sell_fee: float = 2.00,
     commission_bps: float = 0.08,
     label_type: str = "percentage",
-) -> tuple[pd.DataFrame, PCA]:
+) -> tuple[pd.DataFrame, PCA, StandardScaler]:
     """Fit PCA on the training returns.
 
     Args:
@@ -32,11 +32,17 @@ def prepare_pca_data_train(
         )
     df = df.sort_index()
 
+
+
+    scaler = StandardScaler()
+    
     df_return = compute_net_return_series(df, budget, buy_sell_fee, commission_bps, label_type)
     df_return = df_return.dropna()
 
     pca = PCA(n_components=n_pca_components)
-    x_train_pca = pca.fit_transform(df_return)
+
+    df_return_scaled = scaler.fit_transform(df_return)
+    x_train_pca = pca.fit_transform(df_return_scaled)
 
     x_train_pca = pd.DataFrame(
         x_train_pca,
@@ -44,11 +50,12 @@ def prepare_pca_data_train(
         columns=[f"PC{i + 1}" for i in range(x_train_pca.shape[1])],
     )
 
-    return x_train_pca, pca
+    return x_train_pca, pca, scaler
 
 
 def prepare_pca_data_test(
     pca: PCA,
+    pca_scaler: StandardScaler, 
     df: pd.DataFrame,
     budget: float | None = None,
     buy_sell_fee: float = 2.00,
@@ -78,7 +85,8 @@ def prepare_pca_data_test(
     df_return = compute_net_return_series(df, budget, buy_sell_fee, commission_bps, label_type)
     df_return = df_return.dropna()
 
-    x_test_pca = pca.transform(df_return)
+    df_return_scaled = pca_scaler.transform(df_return)
+    x_test_pca = pca.transform(df_return_scaled)
 
     x_test_pca = pd.DataFrame(
         x_test_pca,

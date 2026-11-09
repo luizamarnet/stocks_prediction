@@ -32,7 +32,7 @@ def main() -> None:
     n_pca_components: int = 2
     n_past_days: int = 5
 
-    profit: float =5.00
+    profit: float =30.00
     label_type: str = "profit"
     regressor_flag: bool = False
 

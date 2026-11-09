@@ -307,8 +307,8 @@ The backtest assumes that each prediction can be evaluated at market opening and
 |:---:|:---:|:---: |:---:|:---:|:---:|:---:|:---:|:---:|
 | A | True | False |  Not considered | percentage | 611.31 | 36.80 |574.51 | 93.81 |
 | B | False | False |  Not Considered | percentage | 1079.46 | 36.80 | 1042.66 |135.58 |
-| C | True | False |  TBD | TBD | TBD | TBD |TBD |TBD |
-| D | False | False |  TBD | TBD | TBD | TBD |TBD |TBD |
+| C | False | False |  5.00 | profit | 418.06 | 36.80 |381.26 |TBD |
+| D | False | False |  0.0 | profit | 422.09 | 36.80 |385.29 |TBD |
 
 Since NEWCAP.CO delivered exceptionally high returns compared with the other stocks, its contribution may distort the overall performance comparison. Therefore, we also report the strategy results excluding this stock to provide a more representative view of performance across the remaining stocks.
 
@@ -332,8 +332,8 @@ Statistics across all daily trades and stocks (returns in %)
 | Max    |    196.690  | 29.294  | 197.012  |  29.280966 | 197.039
 
 Strategy vs. Buy-and-Hold
-- In Experiment A, our strategy outperformed buy-and-hold in 40.92% of all trades across stocks and dates.
-- In Experiment B, our strategy outperformed buy-and-hold in 41.67% of all trades across stocks and dates.
+- In Experiment A, our strategy outperformed buy-and-hold in 41.67% of all trades across stocks and dates.
+- In Experiment B, our strategy outperformed buy-and-hold in 40.92% of all trades across stocks and dates.
 
 ### 3. Plots
 
