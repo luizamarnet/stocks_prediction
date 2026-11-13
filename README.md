@@ -17,7 +17,7 @@ The ultimate goal is not simply to predict stock prices, but to evaluate whether
   - [2. Feature Engineering](#2-feature-engineering)
   - [3. Dimensionality Reduction](#3-dimensionality-reduction)
   - [4. Predictive Models](#4-predictive-models)
-  - [5. Walk-Forward Evaluation](#5-walk-forward-evaluation) *(not implemented yet)*
+  - [5. Walk-Forward Evaluation](#5-walk-forward-evaluation) 
   - [6. Trading Strategy and Backtesting](#6-trading-strategy-and-backtesting)
 - [Experimental Setup](#experimental-setup)
 - [Results](#results)
@@ -304,11 +304,14 @@ The backtest assumes that each prediction can be evaluated at market opening and
 
 
 | Experiment | regressor_flag | retrain_walk_forward | Minimum Profit ($) | label_type | Total net PnL with Strategy (%) | Total Net PnL with Buy-and-Hold (%) | Difference (Strategy - Buy-and-Hold) (%)| Strategy PnL without NEWCAP.CO (%) |
-|:---:|:---:|:---: |:---:|:---:|:---:|:---:|:---:|:---:|
-| A | True | False |  Not considered | percentage | 611.31 | 36.80 |574.51 | 93.81 |
-| B | False | False |  Not Considered | percentage | 1079.46 | 36.80 | 1042.66 |135.58 |
-| C | False | False |  5.00 | profit | 418.06 | 36.80 |381.26 |TBD |
-| D | False | False |  0.0 | profit | 422.09 | 36.80 |385.29 |TBD |
+|:---:|:---:  |:---:  |:---:            |:---:       |:---:    |:---:  |:---:    |:---:    |
+| A   | True  | False |  Not considered | percentage | 611.31  | 36.80 | 574.51  |  95.17  |
+| B   | False | False |  Not Considered | percentage | 1079.46 | 36.80 | 1042.66 | 137.54  |
+| C   | False | False |  5.00           | profit     | 412.17  | 36.80 | 375.38  | 100.14  |
+| D   | False | False |  0.00           | profit     | 412.29  | 36.80 | 375.49  |  100.26  |
+| E   | False | False |  30.00          | profit     | 397.22  | 36.80 | 360.42  |  96.23  |
+| F   | False | True  |  Not Considered | percentage | 676.97  | 36.80 | 640.18  | 152.28 |
+| G   | False | True  |  5.00           | profit     | 142.49  | 36.80 | 105.69  | TBD |
 
 Since NEWCAP.CO delivered exceptionally high returns compared with the other stocks, its contribution may distort the overall performance comparison. Therefore, we also report the strategy results excluding this stock to provide a more representative view of performance across the remaining stocks.
 
@@ -324,16 +327,20 @@ Notes:
 
 Statistics across all daily trades and stocks (returns in %)
 
-|        | Experiment A Strategy (%) | Experiment A without NEWCAP.CO (%)| Experiment B Strategy (%) | Experiment B without NEWCAP.CO (%) | Buy-and-Hold (%) 
-|:-------|-------:|-------:|-------:|-------:|-------:|
-| Mean   |   0.082  | 0.067  | 0.104  |  0.088368  | 0.060
-| Median |    0.000 | 0.000   | 0.000 | 0.000000  | 0.000
-| Min    |    -23.018 |  -23.018  | -22.836  | -22.836318  | -82.208
-| Max    |    196.690  | 29.294  | 197.012  |  29.280966 | 197.039
+|        | Experiment A Strategy (%) | Experiment A without NEWCAP.CO (%)| Experiment B Strategy (%) | Experiment B without NEWCAP.CO (%) | Experiment C Strategy (%) |Experiment C without NEWCAP.CO (%)      | Experiment F Strategy (%) | Experiment F without NEWCAP.CO (%)      | Buy-and-Hold (%) | Buy-and-Hold without NEWCAP.CO (%)| 
+|:-------|-------:    | -------:| -------: |-------: |-------:|-------: |-------: | -------:| -------:|-------:|
+| Mean   |   0.082    | 0.067   | 0.104    |  0.088  |  0.086 | 0.0742  |   0.113 |   0.098 | 0.060   | 0.053034
+| Median |    0.000   | 0.000   | 0.000    | 0.000   |  0.000 | 0.000   |   0.000 |   0.000 | 0.000   | 0.000000
+| Min    |    -23.018 |  -23.018| -22.836  | -22.836 |-21.339 | -21.339 | -23.316 | -23.316 | -82.208 | -82.208462
+| Max    |    196.690 | 29.294  | 197.012  |  29.281 | 44.442 | 29.294  | 197.350 |  29.285 | 197.039 | 37.904589
 
 Strategy vs. Buy-and-Hold
-- In Experiment A, our strategy outperformed buy-and-hold in 40.92% of all individual trades across stocks and dates. However, when comparing the accumulated PnL at the end of the evaluation period, our strategy outperformed buy-and-hold for 54.29% of the stocks evaluated.
-- In Experiment B, our strategy outperformed buy-and-hold in 41.67% of all individual trades across stocks and dates. However, based on the accumulated PnL at the end of the evaluation period, our strategy outperformed buy-and-hold for 61.43% of the stocks evaluated.
+- In Experiment A, when comparing the accumulated PnL at the end of the evaluation period, our strategy outperformed buy-and-hold for 54.29% of the stocks evaluated.
+- In Experiment B, based on the accumulated PnL at the end of the evaluation period, our strategy outperformed buy-and-hold for 61.43% of the stocks evaluated.
+
+- In Experiment C, based on the accumulated PnL at the end of the evaluation period, our strategy outperformed buy-and-hold for 57.14% of the stocks evaluated.
+
+- In Experiment F, based on the accumulated PnL at the end of the evaluation period, our strategy outperformed buy-and-hold for 64.29% of the stocks evaluated.
 
 ### 3. Plots
 

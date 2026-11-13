@@ -32,9 +32,10 @@ def main() -> None:
     n_pca_components: int = 2
     n_past_days: int = 5
 
-    profit: float =30.00
+    profit: float =5.00
     label_type: str = "profit"
     regressor_flag: bool = False
+    walk_forward_flag: bool = True
 
     if label_type not in ("profit", "percentage"):
         raise ValueError(
@@ -69,10 +70,11 @@ def main() -> None:
     results_all_pnl_no_code = pd.DataFrame()
     results_all_pnl_code_percent = pd.DataFrame()
     results_all_pnl_no_code_percent = pd.DataFrame()
+    all_regressors_results = pd.DataFrame()
 
     for n_stocks_analyzed, target_stock in enumerate(train_raw.columns, start=1):
         
-        
+        print(f"\n\n\n#########{target_stock}#########")
 
         # Walk-forward predictions for this stock
         predictions = run_walk_forward(
@@ -92,6 +94,7 @@ def main() -> None:
             profit=profit,
             label_type=label_type,
             regressor_flag=regressor_flag,
+            walk_forward_flag=walk_forward_flag,
         )
         
         week_positions = np.where(week_labels == test_weeks[0])[0]
@@ -127,6 +130,7 @@ def main() -> None:
         results_all_pnl_no_code.index.name = "Date"
         results_all_pnl_code_percent.index.name = "Date"
         results_all_pnl_no_code_percent.index.name = "Date"
+        all_regressors_results.index.name = "Date"
 
         # Persist the accumulated results after every stock
         results_all_pnl_code.to_csv(RESULTS_CODE_CSV, index=True)
@@ -135,7 +139,16 @@ def main() -> None:
         results_all_pnl_no_code_percent.to_csv(RESULTS_NO_CODE_PERCENT_CSV, index=True)
 
         if regressor_flag:
-            predictions[["val_error","test_error","test_returns"]].to_csv(REGRESSOR_PERFORMANCE, index=True)
+            
+            one_stock = predictions[["val_error","test_error","test_returns"]]
+
+            all_regressors_results = pd.concat(
+                [all_regressors_results,
+                    pd.Series(one_stock, index=predictions.index, name=target_stock)],
+                axis=1,
+            )
+
+            all_regressors_results.to_csv(REGRESSOR_PERFORMANCE, index=True)
 
         # Per-stock accumulated PnL plots (absolute and percentage)
         plot_graphs(target_stock, daily_pnl_strategy, daily_pnl_buy_hold,
@@ -176,6 +189,8 @@ def main() -> None:
             percent=True,
             save_path=RESULTS_PLOTS_DIR,
         )
+
+        print("#"*40)
 
 
 if __name__ == "__main__":

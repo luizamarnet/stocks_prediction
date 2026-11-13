@@ -41,8 +41,8 @@ def prepare_pca_data_train(
 
     pca = PCA(n_components=n_pca_components)
 
-    df_return_scaled = scaler.fit_transform(df_return)
-    x_train_pca = pca.fit_transform(df_return_scaled)
+    #df_return_scaled = scaler.fit_transform(df_return)
+    x_train_pca = pca.fit_transform(df_return)
 
     x_train_pca = pd.DataFrame(
         x_train_pca,
@@ -85,8 +85,8 @@ def prepare_pca_data_test(
     df_return = compute_net_return_series(df, budget, buy_sell_fee, commission_bps, label_type)
     df_return = df_return.dropna()
 
-    df_return_scaled = pca_scaler.transform(df_return)
-    x_test_pca = pca.transform(df_return_scaled)
+    #df_return_scaled = pca_scaler.transform(df_return)
+    x_test_pca = pca.transform(df_return)
 
     x_test_pca = pd.DataFrame(
         x_test_pca,

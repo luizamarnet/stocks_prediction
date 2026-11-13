@@ -31,6 +31,7 @@ def run_walk_forward(
     label_type: str = "percentage",
     val_frac: float = 0.1,
     regressor_flag: bool = False,
+    walk_forward_flag: bool = False,
 ) -> pd.DataFrame:
     """Train and predict week by week for one stock.
 
@@ -72,7 +73,10 @@ def run_walk_forward(
         # Training: sliding window, only data BEFORE the week
         train_df = full.iloc[max(0, week_start - train_size):week_start]
         # Evaluation: history (for features) + the week itself
-        eval_df = full.iloc[max(0, week_start - warmup):]#[max(0, week_start - warmup):week_end + 1]
+        if walk_forward_flag:
+            eval_df = full.iloc[max(0, week_start - warmup):week_end + 1]
+        else:
+            eval_df = full.iloc[max(0, week_start - warmup):]
 
         #print(train_df.tail())
         assert train_df.index.max() < week_dates[0]
@@ -104,8 +108,10 @@ def run_walk_forward(
             budget=budget, buy_sell_fee = buy_sell_fee, commission_bps = commission_bps, profit=profit, label_type=label_type, 
         )
 
-        
-        week_mask = X_test.index>=week_dates[0]#X_test.index.isin(week_dates)
+        if walk_forward_flag:
+            week_mask = X_test.index.isin(week_dates)
+        else:
+            week_mask = X_test.index>=week_dates[0]
         X_test = X_test[week_mask]
         y_test = y_test[week_mask]
         y_logical_test = y_logical_test[week_mask]
@@ -123,9 +129,14 @@ def run_walk_forward(
 
         
         assert X_train.index.max() < week_dates[0]
-        assert X_test.index.min() >= week_dates[0] and X_test.index.max() <= full.index[-2]#and X_test.index.max() <= week_dates[-1]
+        if walk_forward_flag:
+            assert X_test.index.min() >= week_dates[0] and X_test.index.max() <= week_dates[-1]
+        else:
+            assert X_test.index.min() >= week_dates[0] and X_test.index.max() <= full.index[-2]
 
-        print(f"###{target_stock}###") #print(f"{target_stock} - count down: {week_counter}/{len(test_weeks)}")
+    
+        if walk_forward_flag:
+            print(f"{target_stock} - count down: {week_counter}/{len(test_weeks)}")
         
         week_counter += 1
 
@@ -186,7 +197,8 @@ def run_walk_forward(
                 "price_test": price_test,
             }, index=X_test.index))
 
-        break
+        if not walk_forward_flag:
+            break
 
     predictions = pd.concat(weekly_results).sort_index()
     
